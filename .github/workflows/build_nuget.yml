@@ -1,4 +1,4 @@
-name: Build NativeAssets Demo
+name: Build Puerts NativeAssets
 
 on:
   push:
@@ -8,27 +8,20 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        backend: [papi-lua, papi-quickjs, papi-v8, puerts]
         include:
-          # Linux x64
           - os: ubuntu-latest
             platform: linux
             arch: x64
-          # Windows x64
           - os: windows-2022
             platform: win
             arch: x64
-          # Windows x86
           - os: windows-2022
             platform: win
             arch: ia32
-          # macOS x64
           - os: macos-latest
             platform: osx
             arch: x64
-          # macOS arm64
           - os: macos-latest
             platform: osx
             arch: arm64
@@ -36,42 +29,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Linux 环境需要先装依赖
       - name: Install libc++-dev (Linux only)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y clang libc++-dev libc++abi-dev
 
-      - name: Build native library
+      - name: Build puerts native library
         run: |
-          cd ./unity/native/${{ matrix.backend }}
-          node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+          cd ./puerts
+          node ../../cli --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.backend }}-${{ matrix.platform }}-${{ matrix.arch }}
+          name: puerts-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            ./unity/native/${{ matrix.backend }}/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.{dll,dylib,so}
-            ./unity/native/${{ matrix.backend }}/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/lib*.so
-
-  pack:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-      # 下载所有 artifact
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
-      - name: List all artifacts
-        run: ls -R
-
-      - name: Pack NuGet (no publish)
-        run: |
-          dotnet tool install -g nuget
-          nuget pack nuget.nuspec -OutputDirectory out
-
-      - name: Show nupkg
-        run: ls -l out
+            ./puerts/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dll
+            ./puerts/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dylib
+            ./puerts/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/lib*.so
