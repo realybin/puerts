@@ -45,9 +45,6 @@ jobs:
 
   build_macos:
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: HelloWorld.Native
     steps:
       - uses: actions/checkout@v4
       - name: Build native library (macOS)
