@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      NATIVE_BACKENDS: papi-lua papi-quickjs papi-v8 puerts
     strategy:
       matrix:
         include:
@@ -39,7 +41,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           set -ex
-          backends="papi-lua papi-quickjs papi-v8 puerts"
+          backends="${NATIVE_BACKENDS}"
           repo_root=$(pwd)
           for backend in $backends; do
             echo "Building $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
@@ -52,7 +54,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           $ErrorActionPreference = "Stop"
-          $backends = @('papi-lua', 'papi-quickjs', 'papi-v8', 'puerts')
+          $backends = $env:NATIVE_BACKENDS.Split(" ")
           $repoRoot = (Get-Location)
           foreach ($backend in $backends) {
             Write-Host "Building $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
