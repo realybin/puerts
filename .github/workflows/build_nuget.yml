@@ -20,18 +20,16 @@ jobs:
              cd ./unity/native_src/
              node ../cli make --backend quickjs --platform linux --arch x64
              node ../cli make --backend v8 --platform linux --arch x64
-      - name: List all .so files
-        run: find unity/native -name "*.so"
       - uses: actions/upload-artifact@v4
         with:
           name: native-linux-x64
-          path: unity/native/*/build_linux_x64_*/lib*.so
+          path: unity/native/build_linux_x64_*/lib*.so
 
   build_win_x64:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Build native library (Windows)
+      - name: Build native library
         run: |
              cd ./unity/native_src/
              node ../cli make --backend quickjs --platform win --arch x64
@@ -45,7 +43,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Build native library (Windows)
+      - name: Build native library
         run: |
              cd ./unity/native_src/
              node ../cli make --backend quickjs --platform win --arch ia32
@@ -60,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
   
-      - name: Build native library (macOS x64)
+      - name: Build native library
         run: |
           cd ./unity/native_src/
           node ../cli make --backend quickjs --platform osx --arch x64
@@ -69,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-macOS
-          path: unity/native/*/build_osx_x64_*/lib*.so
+          path: unity/native/build_osx_x64_*/lib*.so
 
   pack:
     runs-on: ubuntu-latest
