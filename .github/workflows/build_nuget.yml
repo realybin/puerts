@@ -15,9 +15,10 @@ jobs:
       #- name: Install build tools
       #  run: sudo apt-get update && sudo apt-get install -y gcc
       - name: Build native library (Linux)
-        run: cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64 \
-             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64 \
-             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64 \
+        run: |
+             cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
+             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
+             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
       - uses: actions/upload-artifact@v4
         with:
           name: native-linux
