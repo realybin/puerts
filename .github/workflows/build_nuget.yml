@@ -40,11 +40,12 @@ jobs:
         run: |
           set -ex
           backends="papi-lua papi-quickjs papi-v8 puerts"
+          repo_root=$(pwd)
           for backend in $backends; do
             echo "Building $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
-            cd unity/native/$backend
+            cd "$repo_root/unity/native/$backend"
             node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
-            cd ../../..
+            cd "$repo_root"
           done
 
       - name: Build all native backends (Windows)
