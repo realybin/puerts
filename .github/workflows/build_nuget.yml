@@ -1,4 +1,4 @@
-name: Build Puerts NativeAssets
+name: Build NativeAssets
 
 on:
   push:
@@ -9,6 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        backend: [papi-lua, papi-quickjs, papi-v8, puerts]
         include:
           - os: ubuntu-latest
             platform: linux
@@ -35,17 +36,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang libc++-dev libc++abi-dev
 
-      - name: Build puerts native library
+      - name: Build ${{ matrix.backend }} native library
         run: |
-          ls && pwd
           cd unity/native/${{ matrix.backend }}
           node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: puerts-${{ matrix.platform }}-${{ matrix.arch }}
+          name: ${{ matrix.backend }}-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            ./puerts/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dll
-            ./puerts/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dylib
-            ./puerts/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/lib*.so
+            unity/native/${{ matrix.backend }}/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dll
+            unity/native/${{ matrix.backend }}/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dylib
+            unity/native/${{ matrix.backend }}/build_${{ matrix.platform }}_${{ matrix.arch }}_*/lib*.so
