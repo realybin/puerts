@@ -21,6 +21,8 @@ jobs:
              cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
              cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
              cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
+      - name: List all .so files
+        run: find unity/native -name "*.so"
       - uses: actions/upload-artifact@v4
         with:
           name: native-linux
