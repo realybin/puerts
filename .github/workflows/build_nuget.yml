@@ -37,7 +37,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: native-win-x64
-          path: unity/native_src/build_win_ia32_*/Release/*.dll
+          path: unity/native_src/build_win_x64_*/Release/*.dll
 
   build_win_x86:
     runs-on: windows-2022
@@ -67,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-macOS
-          path: unity/native_src/build_osx_x64_*/lib*.so
+          path: unity/native_src/build_osx_x64_*/*.dylib
 
   pack:
     runs-on: ubuntu-latest
