@@ -63,8 +63,9 @@ jobs:
 
       - name: Build native library (macOS arm64)
         run: |
+          rm -rf unity/native/*/build_*
+          find . -name "*.dylib" -delete
           cd ./unity/native/
-          rm -rf papi-quickjs/build_* papi-v8/build_* puerts/build_*
           cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
           cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
           cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
