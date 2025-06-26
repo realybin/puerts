@@ -63,6 +63,8 @@ jobs:
           cd ./unity/native_src/
           node ../cli make --backend quickjs --platform osx --arch x64
           node ../cli make --backend v8 --platform osx --arch x64
+      - name: Find all *.dylib
+        run: find . -name "*.dylib"
       - name: Upload all native macOS artifacts
         uses: actions/upload-artifact@v4
         with:
