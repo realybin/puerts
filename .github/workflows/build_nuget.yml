@@ -52,11 +52,12 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $backends = @('papi-lua', 'papi-quickjs', 'papi-v8', 'puerts')
+          $repoRoot = (Get-Location)
           foreach ($backend in $backends) {
             Write-Host "Building $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
-            Set-Location "unity/native/$backend"
+            Set-Location "$repoRoot/unity/native/$backend"
             node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
-            Set-Location ../..
+            Set-Location $repoRoot
           }
         shell: pwsh
 
