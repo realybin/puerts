@@ -38,7 +38,7 @@ jobs:
       - name: Build puerts native library
         run: |
           ls && pwd
-          cd ./unity/native
+          cd unity/native/${{ matrix.backend }}
           node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
       - name: Upload artifact
