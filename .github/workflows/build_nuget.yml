@@ -41,7 +41,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: native-win
-          path: unity/native/*/build_win_x64_*/*.dll
+          path: unity/native/*/build_win_x64_*/Release/*.dll
 
   build_macos:
     runs-on: macos-latest
@@ -51,11 +51,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build native library (macOS)
-        run: gcc -dynamiclib helloworld.c -o hello.dylib
+        run: |
+             cd ./unity/native/
+             cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
+             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
+             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
+             
+             cd ../papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
+             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
+             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
       - uses: actions/upload-artifact@v4
         with:
-          name: native-mac
-          path: HelloWorld.Native/hello.dylib
+          name: native-macOS
+          path: | 
+                unity/native/*/build_osx_x64_*/lib*.dylib
+                unity/native/*/build_osx_arm64_*/lib*.dylib
 
   pack:
     runs-on: ubuntu-latest
@@ -71,12 +81,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: native-windows
-          path: native/windows
+          path: native/win
       - name: Download Mac artifact
         uses: actions/download-artifact@v4
         with:
-          name: native-mac
-          path: native/mac
+          name: native-macOS
+          path: native/macOS
       - name: List all native assets
         run: ls -R native
       - name: Pack NuGet (no publish)
