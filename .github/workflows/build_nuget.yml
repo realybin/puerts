@@ -5,97 +5,73 @@ on:
   pull_request:
 
 jobs:
-  build_linux_x64:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install libc++-dev
-        shell: bash
-        run: |
-          sudo apt-get install clang
-          sudo apt-get install libc++-dev
-          sudo apt-get install libc++abi-dev
-      - uses: actions/checkout@v4
-      - name: Build native library
-        run: |
-             cd ./unity/native_src/
-             node ../cli make --backend quickjs --platform linux --arch x64
-             node ../cli make --backend v8 --platform linux --arch x64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-linux-x64
-          path: unity/native_src/build_linux_x64_*/lib*.so
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [papi-lua, papi-quickjs, papi-v8, puerts]
+        include:
+          # Linux x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          # Windows x64
+          - os: windows-2022
+            platform: win
+            arch: x64
+          # Windows x86
+          - os: windows-2022
+            platform: win
+            arch: ia32
+          # macOS x64
+          - os: macos-latest
+            platform: osx
+            arch: x64
+          # macOS arm64
+          - os: macos-latest
+            platform: osx
+            arch: arm64
 
-  build_win_x64:
-    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Build native library
-        run: |
-             cd ./unity/native_src/
-             node ../cli make --backend quickjs --platform win --arch x64
-             node ../cli make --backend v8 --platform win --arch x64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-win-x64
-          path: unity/native_src/build_win_x64_*/Release/*.dll
 
-  build_win_x86:
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build native library
+      # Linux 环境需要先装依赖
+      - name: Install libc++-dev (Linux only)
+        if: runner.os == 'Linux'
         run: |
-             cd ./unity/native_src/
-             node ../cli make --backend quickjs --platform win --arch ia32
-             node ../cli make --backend v8 --platform win --arch ia32
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-win-x86
-          path: unity/native_src/build_win_ia32_*/Release/*.dll
+          sudo apt-get update
+          sudo apt-get install -y clang libc++-dev libc++abi-dev
 
-  build_macos_x64:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-  
       - name: Build native library
         run: |
-          cd ./unity/native_src/
-          node ../cli make --backend quickjs --platform osx --arch x64
-          node ../cli make --backend v8 --platform osx --arch x64
-      - name: Find all *.dylib
-        run: find . -name "*.dylib"
-      - name: Upload all native macOS artifacts
+          cd ./unity/native/${{ matrix.backend }}
+          node ../../cli --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: native-macOS
-          path: unity/native_src/build_osx_x64_*/Release/*.dylib
+          name: ${{ matrix.backend }}-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            ./unity/native/${{ matrix.backend }}/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.{dll,dylib,so}
+            ./unity/native/${{ matrix.backend }}/**/build_${{ matrix.platform }}_${{ matrix.arch }}_*/lib*.so
 
   pack:
     runs-on: ubuntu-latest
-    needs: [build_linux_x64, build_win_x64, build_win_x86, build_macos_x64]
+    needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: Download Linux artifact
+      # 下载所有 artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
-        with:
-          name: native-linux-x64
-          path: native/nlinux-x64
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: native-windows
-          path: native/win
-      - name: Download Mac artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: native-macOS
-          path: native/macOS
-      - name: List all native assets
-        run: ls -R native
+
+      - name: List all artifacts
+        run: ls -R
+
       - name: Pack NuGet (no publish)
         run: |
           dotnet tool install -g nuget
           nuget pack nuget.nuspec -OutputDirectory out
+
       - name: Show nupkg
         run: ls -l out
