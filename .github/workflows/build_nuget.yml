@@ -47,22 +47,39 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build native library (macOS)
+  
+      - name: Build native library (macOS x64)
         run: |
-             cd ./unity/native/
-             cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
-             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
-             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
-             
-             cd ../papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
-             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
-             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
-      - uses: actions/upload-artifact@v4
+          cd ./unity/native/
+          rm -rf papi-quickjs/build_* papi-v8/build_* puerts/build_*
+          cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
+          cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
+          cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
+          cd ..
+          mkdir -p ../../artifacts/x64/papi-quickjs ../../artifacts/x64/papi-v8 ../../artifacts/x64/puerts
+          cp papi-quickjs/build_osx_x64_*/lib*.dylib ../../artifacts/x64/papi-quickjs/ || true
+          cp papi-v8/build_osx_x64_*/lib*.dylib ../../artifacts/x64/papi-v8/ || true
+          cp puerts/build_osx_x64_*/lib*.dylib ../../artifacts/x64/puerts/ || true
+
+      - name: Build native library (macOS arm64)
+        run: |
+          cd ./unity/native/
+          rm -rf papi-quickjs/build_* papi-v8/build_* puerts/build_*
+          cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
+          cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
+          cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch arm64
+          cd ..
+          mkdir -p ../../artifacts/arm64/papi-quickjs ../../artifacts/arm64/papi-v8 ../../artifacts/arm64/puerts
+          cp papi-quickjs/build_osx_arm64_*/lib*.dylib ../../artifacts/arm64/papi-quickjs/ || true
+          cp papi-v8/build_osx_arm64_*/lib*.dylib ../../artifacts/arm64/papi-v8/ || true
+          cp puerts/build_osx_arm64_*/lib*.dylib ../../artifacts/arm64/puerts/ || true
+
+      - name: Upload all native macOS artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: native-macOS
-          path: | 
-                unity/native/*/build_osx_x64_*/lib*.dylib
-                unity/native/*/build_osx_arm64_*/lib*.dylib
+          path: |
+            unity/artifacts/**
 
   pack:
     runs-on: ubuntu-latest
