@@ -30,20 +30,18 @@ jobs:
 
   build_windows:
     runs-on: windows-2022
-    defaults:
-      run:
-        working-directory: HelloWorld.Native
     steps:
       - uses: actions/checkout@v4
-      - uses: microsoft/setup-msbuild@v2
-      - uses: egor-tensin/vs-shell@v2
       - name: Build native library (Windows)
-        run: cl /LD helloworld.c /Fe:hello.dll
-        shell: cmd
+        run: |
+             cd ./unity/native/
+             cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform win --arch x64
+             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform win --arch x64
+             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform win --arch x64
       - uses: actions/upload-artifact@v4
         with:
-          name: native-windows
-          path: HelloWorld.Native/hello.dll
+          name: native-win
+          path: unity/native/*/build_win_x64_*/*.dll
 
   build_macos:
     runs-on: macos-latest
