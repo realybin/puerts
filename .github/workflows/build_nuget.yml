@@ -19,7 +19,7 @@ jobs:
         run: |
              cd ./unity/native_src/
              node ../cli make --backend papi-lua --platform linux --arch x64
-             node ../cli make --backend papi-quickjs --platform linux --arch x64
+             node ../cli make --backend quickjs --platform linux --arch x64
              node ../cli make --backend v8 --platform linux --arch x64
       - name: List all .so files
         run: find unity/native -name "*.so"
@@ -36,7 +36,7 @@ jobs:
         run: |
              cd ./unity/native_src/
              node ../cli make --backend papi-lua --platform win --arch x64
-             node ../cli make --backend papi-quickjs --platform win --arch x64
+             node ../cli make --backend quickjs --platform win --arch x64
              node ../cli make --backend v8 --platform win --arch x64
       - uses: actions/upload-artifact@v4
         with:
@@ -51,7 +51,7 @@ jobs:
         run: |
              cd ./unity/native_src/
              node ../cli make --backend papi-lua --platform win --arch ia32
-             node ../cli make --backend papi-quickjs --platform win --arch ia32
+             node ../cli make --backend quickjs --platform win --arch ia32
              node ../cli make --backend v8 --platform win --arch ia32
       - uses: actions/upload-artifact@v4
         with:
@@ -67,7 +67,7 @@ jobs:
         run: |
           cd ./unity/native_src/
           node ../cli make --backend papi-lua --platform osx --arch x64
-          node ../cli make --backend papi-quickjs --platform osx --arch x64
+          node ../cli make --backend quickjs --platform osx --arch x64
           node ../cli make --backend v8 --platform osx --arch x64
       - name: Upload all native macOS artifacts
         uses: actions/upload-artifact@v4
