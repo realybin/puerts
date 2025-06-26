@@ -82,3 +82,30 @@ jobs:
             unity/native/puerts/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dll
             unity/native/puerts/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.dylib
             unity/native/puerts/build_${{ matrix.platform }}_${{ matrix.arch }}_*/lib*.so
+
+  pack_nuget:
+    name: Pack NuGet (Win)
+    needs: build
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded_natives
+      - name: List downloaded artifacts
+        run: |
+          dir downloaded_natives
+
+      # - name: Pack NuGet
+      #   run: |
+      #     pwsh unity/nuget/build.ps1 --NativeAssetsDirectory downloaded_natives
+      #   shell: pwsh
+
+      # - name: Upload NuGet package
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: nuget-package
+      #     path: unity/nuget/*.nupkg
