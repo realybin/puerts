@@ -59,7 +59,7 @@ jobs:
           path: unity/native/*/build_win_ia32_*/Release/*.dll
 
   build_macos_x64:
-    runs-on: macos-latest
+    runs-on: macos-latest-xl
     steps:
       - uses: actions/checkout@v4
   
