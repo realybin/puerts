@@ -23,7 +23,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: native-linux-x64
-          path: unity/native/build_linux_x64_*/lib*.so
+          path: unity/native_src/build_linux_x64_*/lib*.so
 
   build_win_x64:
     runs-on: windows-2022
@@ -67,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-macOS
-          path: unity/native/build_osx_x64_*/lib*.so
+          path: unity/native_src/build_osx_x64_*/lib*.so
 
   pack:
     runs-on: ubuntu-latest
