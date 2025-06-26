@@ -67,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-macOS
-          path: unity/native_src/build_osx_x64_*/*.dylib
+          path: unity/native_src/build_osx_x64_*/Release/*.dylib
 
   pack:
     runs-on: ubuntu-latest
