@@ -17,10 +17,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build native library
         run: |
-             cd ./unity/native/
-             cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
-             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
-             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
+             cd ./unity/native_src/
+             node ../cli make --backend papi-lua --platform linux --arch x64
+             node ../cli make --backend papi-quickjs --platform linux --arch x64
+             node ../cli make --backend v8 --platform linux --arch x64
       - name: List all .so files
         run: find unity/native -name "*.so"
       - uses: actions/upload-artifact@v4
@@ -28,48 +28,47 @@ jobs:
           name: native-linux-x64
           path: unity/native/*/build_linux_x64_*/lib*.so
 
-  build_windows_x64:
+  build_win_x64:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - name: Build native library (Windows)
         run: |
-             cd ./unity/native/
-             cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform win --arch x64
-             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform win --arch x64
-             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform win --arch x64
+             cd ./unity/native_src/
+             node ../cli make --backend papi-lua --platform win --arch x64
+             node ../cli make --backend papi-quickjs --platform win --arch x64
+             node ../cli make --backend v8 --platform win --arch x64
       - uses: actions/upload-artifact@v4
         with:
-          name: native-win
-          path: unity/native/*/build_win_x64_*/Release/*.dll
+          name: native-win-x64
+          path: unity/native_src/build_win_ia32_*/Release/*.dll
 
-  build_windows_x86:
+  build_win_x86:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - name: Build native library (Windows)
         run: |
-             cd ./unity/native/
-             cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform win --arch ia32
-             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform win --arch ia32
-             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform win --arch ia32
+             cd ./unity/native_src/
+             node ../cli make --backend papi-lua --platform win --arch ia32
+             node ../cli make --backend papi-quickjs --platform win --arch ia32
+             node ../cli make --backend v8 --platform win --arch ia32
       - uses: actions/upload-artifact@v4
         with:
-          name: native-win
-          path: unity/native/*/build_win_ia32_*/Release/*.dll
+          name: native-win-x86
+          path: unity/native_src/build_win_ia32_*/Release/*.dll
 
   build_macos_x64:
-    runs-on: macos-latest-xl
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
   
       - name: Build native library (macOS x64)
         run: |
-          cd ./unity/native/
-          rm -rf papi-quickjs/build_* papi-v8/build_* puerts/build_*
-          cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
-          cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
-          cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform osx --arch x64
+          cd ./unity/native_src/
+          node ../cli make --backend papi-lua --platform osx --arch x64
+          node ../cli make --backend papi-quickjs --platform osx --arch x64
+          node ../cli make --backend v8 --platform osx --arch x64
       - name: Upload all native macOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -78,7 +77,7 @@ jobs:
 
   pack:
     runs-on: ubuntu-latest
-    needs: [build_linux_x64, build_windows_x64, build_windows_x86, build_macos_x64]
+    needs: [build_linux_x64, build_win_x64, build_win_x86, build_macos_x64]
     steps:
       - uses: actions/checkout@v4
       - name: Download Linux artifact
