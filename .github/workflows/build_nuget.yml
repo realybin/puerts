@@ -8,7 +8,8 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     env:
-      NATIVE_BACKENDS: papi-lua papi-quickjs papi-v8 puerts
+      #NATIVE_BACKENDS: papi-lua papi-quickjs papi-v8 puerts
+      NATIVE_BACKENDS: papi-lua papi-quickjs puerts
     strategy:
       matrix:
         include:
@@ -21,12 +22,12 @@ jobs:
           - os: windows-2022
             platform: win
             arch: ia32
-          #- os: macos-latest
-          #  platform: osx
-          #  arch: x64
-          #- os: macos-latest
-          #  platform: osx
-          #  arch: arm64
+          - os: macos-latest
+            platform: osx
+            arch: x64
+          - os: macos-latest
+            platform: osx
+            arch: arm64
 
     steps:
       - uses: actions/checkout@v4
