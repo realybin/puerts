@@ -37,7 +37,7 @@ jobs:
 
       - name: Build puerts native library
         run: |
-          ls && tree
+          ls && pwd
           cd ./unity/native
           node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
