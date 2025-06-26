@@ -7,9 +7,6 @@ on:
 jobs:
   build_linux:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: unity/native
     steps:
       - name: Install libc++-dev
         shell: bash
@@ -20,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build native library (Linux)
         run: |
+             cd ./unity/native/
              cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
              cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
              cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64
