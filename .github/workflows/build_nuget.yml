@@ -24,7 +24,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: native-linux
-          path: ./papi-quickjs/build_linux_x64_*/Release/**/*.so
+          path: unity/native/**/build_linux_x64_*/Release/**/*.so
 
   build_windows:
     runs-on: windows-2022
