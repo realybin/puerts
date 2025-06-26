@@ -37,8 +37,8 @@ jobs:
 
       - name: Build puerts native library
         run: |
-          cd ./puerts
-          node ../../cli --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+          cd ./unity/native
+          node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
