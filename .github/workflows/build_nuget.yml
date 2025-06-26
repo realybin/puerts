@@ -1,0 +1,84 @@
+name: Build NativeAssets Demo
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: unity/native
+    steps:
+      - uses: actions/checkout@v4
+      #- name: Install build tools
+      #  run: sudo apt-get update && sudo apt-get install -y gcc
+      - name: Build native library (Linux)
+        run: cd ./papi-quickjs/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64 \
+             cd ../papi-v8/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64 \
+             cd ../puerts/ && node ../../cli make --backend v8_9.4 --platform linux --arch x64 \
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-linux
+          path: ./papi-quickjs/build_linux_x64_*/Release/**/*.so
+
+  build_windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        working-directory: HelloWorld.Native
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - uses: egor-tensin/vs-shell@v2
+      - name: Build native library (Windows)
+        run: cl /LD helloworld.c /Fe:hello.dll
+        shell: cmd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-windows
+          path: HelloWorld.Native/hello.dll
+
+  build_macos:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: HelloWorld.Native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native library (macOS)
+        run: gcc -dynamiclib helloworld.c -o hello.dylib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-mac
+          path: HelloWorld.Native/hello.dylib
+
+  pack:
+    runs-on: ubuntu-latest
+    needs: [build_linux, build_windows, build_macos]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native-linux
+          path: native/linux
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native-windows
+          path: native/windows
+      - name: Download Mac artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native-mac
+          path: native/mac
+      - name: List all native assets
+        run: ls -R native
+      - name: Pack NuGet (no publish)
+        run: |
+          dotnet tool install -g nuget
+          nuget pack nuget.nuspec -OutputDirectory out
+      - name: Show nupkg
+        run: ls -l out
