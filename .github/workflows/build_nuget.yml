@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       #NATIVE_BACKENDS: papi-lua papi-quickjs papi-v8 puerts
-      NATIVE_BACKENDS: papi-lua papi-quickjs puerts
+      NATIVE_BACKENDS: papi-lua papi-quickjs papi-v8 puerts
     strategy:
       matrix:
         include:
@@ -47,7 +47,13 @@ jobs:
           for backend in $backends; do
             echo "Building $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
             cd "$repo_root/unity/native/$backend"
-            node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+            if [ "$backend" = "papi-v8" ]; then
+              #NOTE：v8加需要指定 --backend 参数
+              node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --backend v8_9.4.146.24
+              # node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+            else
+              node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+            fi
             cd "$repo_root"
           done
 
@@ -60,7 +66,13 @@ jobs:
           foreach ($backend in $backends) {
             Write-Host "Building $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
             Set-Location "$repoRoot/unity/native/$backend"
-            node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+            if ($backend -eq "papi-v8") {
+              #NOTE：v8加需要指定 --backend 参数
+              node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --backend v8_9.4.146.24
+              # node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+            } else {
+              node ../../cli make --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+            }
             Set-Location $repoRoot
           }
         shell: pwsh
