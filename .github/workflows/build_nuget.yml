@@ -13,21 +13,21 @@ jobs:
     strategy:
       matrix:
         include:
-          #- os: ubuntu-latest
-          #  platform: linux
-          #  arch: x64
-          #- os: windows-2022
-          #  platform: win
-          #  arch: x64
-          #- os: windows-2022
-          #  platform: win
-          #  arch: ia32
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: windows-2022
+            platform: win
+            arch: x64
+          - os: windows-2022
+            platform: win
+            arch: ia32
           - os: macos-latest
             platform: osx
             arch: x64
-          #- os: macos-latest
-          #  platform: osx
-          #  arch: arm64
+          - os: macos-latest
+            platform: osx
+            arch: arm64
 
     steps:
       - uses: actions/checkout@v4
