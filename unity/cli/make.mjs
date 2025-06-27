@@ -171,6 +171,8 @@ const platformCompileConfig = {
                 assert.equal(0, exec(`codesign --sign - --options linker-signed --force ${CMAKE_BUILD_PATH}/${options.config}/lib${cmakeAddedLibraryName}.dylib`).code);
 
                 mv(`${CMAKE_BUILD_PATH}/${options.config}/lib${cmakeAddedLibraryName}.dylib`, `${CMAKE_BUILD_PATH}/${options.config}/${cmakeAddedLibraryName}.bundle`);
+                console.log(`generated builds ${CMAKE_BUILD_PATH}/${options.config}/lib${cmakeAddedLibraryName}.dylib`);
+                console.log(`moving to bundle: ${CMAKE_BUILD_PATH}/${options.config}/${cmakeAddedLibraryName}.bundle`);
                 return `${CMAKE_BUILD_PATH}/${options.config}/${cmakeAddedLibraryName}.bundle`;
             }
         },
