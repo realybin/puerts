@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       #NATIVE_BACKENDS: papi-lua papi-quickjs papi-v8 puerts
-      NATIVE_BACKENDS: papi-lua papi-quickjs papi-v8 puerts
+      NATIVE_BACKENDS: puerts papi-lua papi-quickjs papi-v8
     strategy:
       matrix:
         include:
