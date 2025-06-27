@@ -76,7 +76,19 @@ jobs:
             Set-Location $repoRoot
           }
         shell: pwsh
-
+      
+      # Rename macOS dylib files to bundle format to maintain compatibility with Unity plugin system
+      # See: https://github.com/Tencent/puerts/blob/e230b37c313c62185ceb5207c37e79e53e1afada/unity/cli/make.mjs#L173
+      # mv(`${CMAKE_BUILD_PATH}/${options.config}/lib${cmakeAddedLibraryName}.dylib`, `${CMAKE_BUILD_PATH}/${options.config}/${cmakeAddedLibraryName}.bundle`);
+      - name: Process macOS (x64) native artifacts
+        if: runner.os == 'macOS' && matrix.arch == 'x64'
+        run: |
+          set -ex
+          for backend in $NATIVE_BACKENDS; do
+            echo "Processing $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
+            mv "unity/native/$backend/build_${{ matrix.platform }}_${{ matrix.arch }}_Release/lib${backend}.dylib" "unity/native/$backend/build_${{ matrix.platform }}_${{ matrix.arch }}_Release/${backend}.bundle"
+          done
+      
       - name: Upload all native artifacts
         uses: actions/upload-artifact@v4
         with:
