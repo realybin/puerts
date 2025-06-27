@@ -15,6 +15,16 @@ endif ()
 
 project(PapiLua LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 14)
+
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type selected, default to Release")
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
+message(STATUS "Building in ${CMAKE_BUILD_TYPE} mode")
+message(STATUS "Building with ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION} on ${CMAKE_SYSTEM}")
+
 if ( IOS )
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fembed-bitcode")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fembed-bitcode")
@@ -75,23 +85,10 @@ if (APPLE)
 		set_xcode_property (PapiLua IPHONEOS_DEPLOYMENT_TARGET "7.0" "all")
     else ()
         ADD_DEFINITIONS(-DLUA_USE_MACOSX) #osx platform emmylua debugger must have this option or can not load cpath
-        if (BUILD_SILICON)
-           set(CMAKE_OSX_ARCHITECTURES arm64)
-
-            add_library(PapiLua SHARED
-                ${LUA_CORE}
-                ${PAPI_SRC}
-            )
-        else ()
-            set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD_64_BIT)")
-            add_library(PapiLua MODULE
-                ${LUA_CORE}
-                ${PAPI_SRC}
-            )
-            set_target_properties ( PapiLua PROPERTIES BUNDLE TRUE )
-            #set_target_properties ( PapiLua PROPERTIES FRAMEWORK TRUE )
-            #set_target_properties ( PapiLua PROPERTIES MACOSX_RPATH TRUE )
-        endif ()
+        add_library(PapiLua SHARED
+            ${LUA_CORE}
+            ${PAPI_SRC}
+        )
     endif ()
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Switch")
     add_library(PapiLua STATIC
@@ -119,6 +116,10 @@ else ( )
 endif ( )
 
 target_compile_definitions(PapiLua PRIVATE EASTL_DLL USING_EASTL)
+#target_compile_definitions(PapiLua PRIVATE CHAR8_T_DEFINED)
+target_compile_definitions(PapiLua PUBLIC EA_DEPRECATIONS_FOR_2024_APRIL=EA_DISABLED)
+target_compile_definitions(PapiLua PUBLIC EA_DEPRECATIONS_FOR_2024_SEPT=EA_DISABLED)
+target_compile_definitions(PapiLua PUBLIC EA_DEPRECATIONS_FOR_2025_APRIL=EA_DISABLED)
 
 target_compile_options(PapiLua PRIVATE
     $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>>:
