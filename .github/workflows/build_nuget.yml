@@ -77,16 +77,26 @@ jobs:
           }
         shell: pwsh
       
-      # Rename macOS dylib files to bundle format to maintain compatibility with Unity plugin system
-      # See: https://github.com/Tencent/puerts/blob/e230b37c313c62185ceb5207c37e79e53e1afada/unity/cli/make.mjs#L173
-      # mv(`${CMAKE_BUILD_PATH}/${options.config}/lib${cmakeAddedLibraryName}.dylib`, `${CMAKE_BUILD_PATH}/${options.config}/${cmakeAddedLibraryName}.bundle`);
-      - name: Process macOS (x64) native artifacts
-        if: runner.os == 'macOS' && matrix.arch == 'x64'
+        # See: https://github.com/Tencent/puerts/blob/e230b37c313c62185ceb5207c37e79e53e1afada/unity/cli/make.mjs#L173
+        # mv(`${CMAKE_BUILD_PATH}/${options.config}/lib${cmakeAddedLibraryName}.dylib`, `${CMAKE_BUILD_PATH}/${options.config}/${cmakeAddedLibraryName}.bundle`);
+        # generated builds /Users/runner/work/puerts/puerts/unity/native/puerts/build_osx_x64_puerts/Release/libPuertsCore.dylib
+        # moving to bundle: /Users/runner/work/puerts/puerts/unity/native/puerts/build_osx_x64_puerts/Release/PuertsCore.bundle
+        # Rename macOS bundle format to dylib files to ensure upload-artifact works correctly
+      - name: Process macOS native artifacts
+        if: runner.os == 'macOS'
         run: |
           set -ex
           for backend in $NATIVE_BACKENDS; do
             echo "Processing $backend for ${{ matrix.platform }}-${{ matrix.arch }}"
-            mv "unity/native/$backend/build_${{ matrix.platform }}_${{ matrix.arch }}_Release/lib${backend}.dylib" "unity/native/$backend/build_${{ matrix.platform }}_${{ matrix.arch }}_Release/${backend}.bundle"
+            bundle_path="unity/native/$backend/build_${{ matrix.platform }}_${{ matrix.arch }}_*/Release/*.bundle"
+            if compgen -G "$bundle_path" > /dev/null; then
+              echo "Renaming bundle to dylib"
+              for bundle in $bundle_path; do
+                if [ -e "$bundle" ]; then
+                  mv "$bundle" "${bundle%.bundle}.dylib"
+                fi
+              done
+            fi
           done
       
       - name: Upload all native artifacts
