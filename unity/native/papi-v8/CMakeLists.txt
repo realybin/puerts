@@ -92,18 +92,11 @@ endif()
 
 if ( APPLE )
     if ( IOS )
-        set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD)")
         add_library(PapiV8 STATIC
            ${PUERTS_SRC} ${PUERTS_INC}
         )
 		set_xcode_property (PapiV8 IPHONEOS_DEPLOYMENT_TARGET "7.0" "all")
     else ()
-        if ( NOT DEFINED FOR_SILICON )
-            set(CMAKE_OSX_ARCHITECTURES x86_64)
-        else ()
-            set(CMAKE_OSX_ARCHITECTURES arm64)
-        endif ()
-        
         add_library(PapiV8 SHARED
             ${PUERTS_SRC} ${PUERTS_INC}
         )
