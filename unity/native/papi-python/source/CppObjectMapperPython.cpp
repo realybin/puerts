@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Tencent is pleased to support the open source community by making Puerts available.
  * Copyright (C) 2020 Tencent.  All rights reserved.
  * Puerts is licensed under the BSD 3-Clause License, except for the third-party components listed in the file 'LICENSE' which may
@@ -898,10 +898,14 @@ void CppObjectMapper::Initialize(PyThreadState *InThreadState)
 void CppObjectMapper::Cleanup()
 {
     PyThreadState_Swap(threadState);
+    printf("==== CppObjectMapper::Cleanup\n");
     for (auto& kv : TypeIdToFunctionMap)
     {
-        Py_DecRef(kv.second);
+        auto obj = kv.second;
+        printf("TypeIdToFunctionMap key: %p, refcnt: %lld\n", kv.first, (long long)Py_REFCNT(obj));
+        //Py_DecRef(kv.second);
     }
+    printf("==== CppObjectMapper::Cleanup end\n");
 
     for (auto& obj : StrongRefObjects)
     {
@@ -919,7 +923,7 @@ void CppObjectMapper::Cleanup()
 
     StrongRefObjects.clear();
     CDataCache.clear();
-    TypeIdToFunctionMap.clear();
+    //TypeIdToFunctionMap.clear();
     MethodMetaCache.clear();
 }
 }    // namespace pythonimpl

@@ -10,7 +10,8 @@
 #include "pesapi.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
     PESAPI_MODULE_EXPORT int GetPythonPapiVersion()
@@ -25,7 +26,8 @@ extern "C" {
 
     PESAPI_MODULE_EXPORT pesapi_env_ref CreatePythonPapiEnvRef()
     {
-        if (!Py_IsInitialized()) {
+        if (!Py_IsInitialized())
+        {
             Py_Initialize();
         }
 
@@ -36,31 +38,53 @@ extern "C" {
         }
 
         memset(mapper, 0, sizeof(pesapi::pythonimpl::CppObjectMapper));
-        PyThreadState *threadState = Py_NewInterpreter();
-        if (!threadState) {
+        PyThreadState* threadState = Py_NewInterpreter();
+        if (!threadState)
+        {
             free(mapper);
             return nullptr;
         }
 
         new (mapper) pesapi::pythonimpl::CppObjectMapper();
         mapper->Initialize(threadState);
-        PyUnstable_AtExit(PyInterpreterState_Get(), [](void* data) {
-            if (auto mapper = static_cast<pesapi::pythonimpl::CppObjectMapper*>(data))
+
+        PyUnstable_AtExit(
+            PyInterpreterState_Get(),
+            [](void* data)
             {
-                mapper->Cleanup();
-                free(mapper);
-            }
-        }, mapper);
+                if (auto mapper = static_cast<pesapi::pythonimpl::CppObjectMapper*>(data))
+                {
+                    // return;
+                    printf("++++ PyUnstable_AtExit\n");
+                    for (auto& kv : mapper->TypeIdToFunctionMap)
+                    {
+                        auto obj = kv.second;
+                        Py_XDECREF(kv.second);
+                    }
+                    printf("++++ PyUnstable_AtExit end\n");
+                }
+            },
+            mapper);
+
         return pesapi::pythonimpl::g_pesapi_ffi.create_env_ref(reinterpret_cast<pesapi_env>(mapper));
     }
 
     PESAPI_MODULE_EXPORT void DestroyPythonPapiEnvRef(pesapi_env_ref env_ref)
     {
-        auto mapper = reinterpret_cast<pesapi::pythonimpl::CppObjectMapper*>(pesapi::pythonimpl::g_pesapi_ffi.get_env_from_ref(env_ref));
+        auto mapper =
+            reinterpret_cast<pesapi::pythonimpl::CppObjectMapper*>(pesapi::pythonimpl::g_pesapi_ffi.get_env_from_ref(env_ref));
         get_papi_ffi()->release_env_ref(env_ref);
         if (mapper)
         {
+            mapper->Cleanup();
             Py_EndInterpreter(mapper->threadState);
+            printf(">>>> After Py_EndInterpreter\n");
+            for (auto& kv : mapper->TypeIdToFunctionMap)
+            {
+                auto obj = kv.second;
+                printf("TypeIdToFunctionMap key: %p, refcnt: %lld\n", kv.first, (long long) Py_REFCNT(obj));
+            }
+            free(mapper);
         }
     }
 
