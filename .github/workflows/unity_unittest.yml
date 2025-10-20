@@ -140,6 +140,10 @@ jobs:
         run: |
           cd unity/test/dotnet
           node ../../cli dotnet-test -ts
+      - name: UnitTest-all
+        run: |
+          cd unity/test/dotnet
+          node ../../cli dotnet-test
           
   unittest-osx-dotnet:
     runs-on: macos-latest
@@ -167,6 +171,10 @@ jobs:
         run: |
           cd unity/test/dotnet
           node ../../cli dotnet-test -ts
+      - name: UnitTest-all
+        run: |
+          cd unity/test/dotnet
+          node ../../cli dotnet-test
           
   unittest-linux-dotnet:
     runs-on: ubuntu-latest
@@ -201,3 +209,7 @@ jobs:
         run: |
           cd unity/test/dotnet
           node ../../cli dotnet-test -ts
+      - name: UnitTest-all
+        run: |
+          cd unity/test/dotnet
+          node ../../cli dotnet-test
