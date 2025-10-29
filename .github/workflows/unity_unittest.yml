@@ -121,11 +121,14 @@ jobs:
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.x.x'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.0'
       - uses: actions/checkout@v3
       - name: UnitTest-v8
-        continue-on-error: true
         run: |
-          set "PATH=C:\hostedtoolcache\windows\Python\3.14.0\x64;%PATH%"
+          set
           cd unity
           npm i
           cd test/dotnet
