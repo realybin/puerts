@@ -123,6 +123,7 @@ jobs:
           dotnet-version: '6.x.x'
       - uses: actions/checkout@v3
       - name: UnitTest-v8
+        shell: cmd
         run: |
           cd unity
           npm i
