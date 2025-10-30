@@ -602,25 +602,42 @@ const char* pesapi_get_exception_as_string(pesapi_scope pscope, int with_stack)
     {
         return nullptr;
     }
-    auto ex = scope->caught->ex;
     auto globals = PyModule_GetDict(PyImport_AddModule("__main__"));
-    PyDict_SetItem(globals, PyUnicode_FromString("__pesapi_last_exception"), ex);
-    const char* ret;
+
+    const char* ret = nullptr;
     if (with_stack)
     {
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 12
+        PyDict_SetItem(globals, PyUnicode_FromString("__pesapi_last_exception"), scope->caught->value);
         PyRun_SimpleString(
             "import traceback\n"
-            "try:\n"
-            "    raise __pesapi_last_exception\n"
-            "except Exception as e:\n"
-            "    __pesapi_last_exception_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))\n");
+            "if __pesapi_last_exception.__traceback__ is not None:\n"
+            "    __pesapi_last_exception_str = ''.join(traceback.format_exception(type(__pesapi_last_exception), __pesapi_last_exception, __pesapi_last_exception.__traceback__))\n"
+            "else:\n"
+            "    __pesapi_last_exception_str = ''.join(traceback.format_exception_only(type(__pesapi_last_exception), __pesapi_last_exception))\n");
         ret = PyUnicode_AsUTF8(PyDict_GetItem(globals, PyUnicode_FromString("__pesapi_last_exception_str")));
+        PyDict_DelItemString(globals, "__pesapi_last_exception");
+#else
+        PyErr_NormalizeException(&scope->caught->type, &scope->caught->value, &scope->caught->traceback);
+        PyDict_SetItem(globals, PyUnicode_FromString("__pesapi_last_exception_tp"), scope->caught->type);
+        PyDict_SetItem(globals, PyUnicode_FromString("__pesapi_last_exception_value"), scope->caught->value);
+        PyDict_SetItem(globals, PyUnicode_FromString("__pesapi_last_exception_tb"), scope->caught->traceback);
+        PyRun_SimpleString(
+            "import traceback\n"
+            "if __pesapi_last_exception_tb is not None:\n"
+            "    __pesapi_last_exception_str = ''.join(traceback.format_exception(__pesapi_last_exception_tp, __pesapi_last_exception_value, __pesapi_last_exception_tb))\n"
+            "else:\n"
+            "    __pesapi_last_exception_str = ''.join(traceback.format_exception_only(__pesapi_last_exception_tp, __pesapi_last_exception_value))\n");
+        ret = PyUnicode_AsUTF8(PyDict_GetItem(globals, PyUnicode_FromString("__pesapi_last_exception_str")));
+        PyDict_DelItemString(globals, "__pesapi_last_exception_tp");
+        PyDict_DelItemString(globals, "__pesapi_last_exception_value");
+        PyDict_DelItemString(globals, "__pesapi_last_exception_tb");
+#endif
     }
     else
     {
-        ret = PyUnicode_AsUTF8(PyObject_Str(ex));
+        ret = PyUnicode_AsUTF8(PyObject_Str(scope->caught->value));
     }
-    PyDict_DelItemString(globals, "__pesapi_last_exception");
     return ret;
 }
 
@@ -780,16 +797,13 @@ pesapi_value pesapi_call_function(
     else
     {
         auto scope = (pesapi_scope__*)mapper->getCurrentScope();
-#if PY_VERSION_HEX >= 0x030B0000
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 12
         scope->setCaughtException(PyErr_GetRaisedException());
 #else
         {
-            PyObject *type = nullptr, *value = nullptr, *tb = nullptr;
-            PyErr_Fetch(&type, &value, &tb);
-            PyObject *exc = value ? value : type;
-            if (exc) Py_XINCREF(exc);
-            PyErr_Restore(type, value, tb);
-            scope->setCaughtException(exc);
+            PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
+            PyErr_Fetch(&type, &value, &traceback);
+            scope->setCaughtException(type, value, traceback);
         }
 #endif
         return nullptr;
@@ -816,16 +830,13 @@ pesapi_value pesapi_eval(pesapi_env env, const uint8_t* code, size_t code_size, 
         }
     }
     auto scope = (pesapi_scope__*)mapper->getCurrentScope();
-#if PY_VERSION_HEX >= 0x030B0000
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 12
     scope->setCaughtException(PyErr_GetRaisedException());
 #else
     {
-        PyObject *type = nullptr, *value = nullptr, *tb = nullptr;
-        PyErr_Fetch(&type, &value, &tb);
-        PyObject *exc = value ? value : type;
-        if (exc) Py_XINCREF(exc);
-        PyErr_Restore(type, value, tb);
-        scope->setCaughtException(exc);
+        PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
+        PyErr_Fetch(&type, &value, &traceback);
+        scope->setCaughtException(type, value, traceback);
     }
 #endif
     return nullptr;
