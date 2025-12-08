@@ -576,10 +576,6 @@ void pesapi_close_scope(pesapi_scope pscope)
     {
         return;
     }
-    if (scope->prev_scope == nullptr)
-    {
-
-    }
     scope->~pesapi_scope__();
     free(scope);
 }

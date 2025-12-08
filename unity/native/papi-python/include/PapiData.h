@@ -94,13 +94,20 @@ struct pesapi_scope__
     PyObject* values[SCOPE_FIX_SIZE_VALUES_SIZE];
     uint32_t values_used;
     eastl::vector<PyObject*, eastl::allocator_malloc>* dynamic_alloc_values = nullptr;
+    PyThreadState* tstate = nullptr;
     PyThreadState *prevThreadState = nullptr;
 
     explicit pesapi_scope__(CppObjectMapper* mapper)
     {
-        prevThreadState = PyThreadState_Swap(mapper->threadState);
+        printf("ctor pesapi_scope__, p %p\n", this);
         this->mapper = mapper;
         prev_scope = (pesapi_scope__*)(mapper->getCurrentScope());
+        if (prev_scope == nullptr)
+        {
+            printf("GIL Acquire in pesapi_scope__ ctor\n");
+            tstate = PyThreadState_New(mapper->threadState->interp);
+            prevThreadState = PyThreadState_Swap(tstate);
+        }
         mapper->setCurrentScope(this);
         values_used = 0;
         caught = nullptr;
@@ -154,6 +161,14 @@ struct pesapi_scope__
 
     ~pesapi_scope__()
     {
+        printf("dtor pesapi_scope__, p %p\n", this);
+        if (prev_scope == nullptr)
+        {
+            printf("GIL Release in pesapi_scope__ dtor\n");
+            PyThreadState_Clear(tstate);
+            PyThreadState_Swap(prevThreadState);
+            PyThreadState_Delete(tstate);
+        }
         if (caught)
         {
             caught->~caught_exception_info();
@@ -177,7 +192,6 @@ struct pesapi_scope__
             dynamic_alloc_values = nullptr;
         }
         mapper->setCurrentScope(prev_scope);
-        PyThreadState_Swap(prevThreadState);
     }
 };
 

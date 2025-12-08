@@ -970,9 +970,7 @@ void CppObjectMapper::Initialize(PyThreadState *InThreadState)
     if (!threadState) {
         return;
     }
-    
-    auto prevThreadState = PyThreadState_Swap(threadState);
-    
+
     // Ensure __main__ module exists
     PyObject* main_module = PyImport_AddModule("__main__");
     if (!main_module) {
@@ -991,10 +989,9 @@ void CppObjectMapper::Initialize(PyThreadState *InThreadState)
         PyErr_Clear();
         return;
     }
-    
+
     PtrClassDef.TypeId = &PtrClassDef;
     PtrClassDef.ScriptName = "__Pointer";
-    PyThreadState_Swap(prevThreadState);
 }
 
 void CppObjectMapper::Cleanup()
@@ -1041,10 +1038,11 @@ pesapi_env_ref create_py_env()
         free(mapper);
         return nullptr;
     }
-    
+    PyThreadState_Swap(threadState);
     new (mapper) pesapi::pythonimpl::CppObjectMapper();
+
     mapper->Initialize(threadState);
-    
+
     return pesapi::pythonimpl::g_pesapi_ffi.create_env_ref(reinterpret_cast<pesapi_env>(mapper));
 }
 
