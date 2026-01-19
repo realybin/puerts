@@ -590,10 +590,11 @@ TEST_F(PApiBaseTest, VariableAccess)
 {
     auto env = apis->get_env_from_ref(env_ref);
 
-    auto code = R"((lambda TestStruct: (
-        TestStruct.get_ctor_count(),
-        TestStruct.set_ctor_count(999)
-    ))(loadClass('TestStruct'))[0])";
+auto code = R"((lambda TestStruct: (
+    TestStruct.ctor_count,
+    setattr(TestStruct, 'ctor_count', 999)
+))(loadClass('TestStruct'))[0])";
+
     TestStruct::ctor_count = 100;
     auto ret = apis->eval(env, (const uint8_t*) (code), strlen(code), "test.py");
     if (apis->has_caught(scope))

@@ -248,8 +248,9 @@ public:
     PyObject* MakeFunction(puerts::ScriptFunctionInfo* FuncInfo, DynObj* Obj = nullptr);
 
     void InitProperty(puerts::ScriptPropertyInfo* PropInfo, PyObject* Obj);
+    void InitStaticProperty(puerts::ScriptPropertyInfo* PropInfo, PyObject* MetaObj);
 
-    void InitVariable(puerts::ScriptPropertyInfo* PropInfo, PyObject* Obj);
+    void InitVariable(puerts::ScriptPropertyInfo* PropInfo, PyObject* Obj, PyObject* Meta);
 
     PyObject* FindOrCreateClass(const puerts::ScriptClassDefinition* ClassDefinition);
 

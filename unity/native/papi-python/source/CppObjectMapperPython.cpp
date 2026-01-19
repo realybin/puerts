@@ -444,7 +444,7 @@ static PyObject* staticPropGetter(PyObject* self, void* closure)
     callbackInfo.ex = nullptr;
     callbackInfo.ex_owned = nullptr;
     callbackInfo.mapper = info->mapper;
-    
+
     callback(&g_pesapi_ffi, reinterpret_cast<pesapi_callback_info>(&callbackInfo));
     if (callbackInfo.ex)
     {
@@ -493,6 +493,38 @@ static int staticPropSetter(PyObject* self, PyObject* value, void* closure)
     Py_DECREF(callbackInfo.args);  // Clean up the tuple we created
     return 0;
 };
+
+void CppObjectMapper::InitStaticProperty(puerts::ScriptPropertyInfo* PropInfo, PyObject* MetaObj)
+{
+    //make crash here
+    printf("InitStaticProperty: %s\n", PropInfo->Name);
+    auto info = (GetterSetterInfo*) PyMem_Malloc(sizeof(GetterSetterInfo));
+    info->getter = PropInfo->Getter;
+    info->setter = PropInfo->Setter;
+    info->getterData = PropInfo->GetterData;
+    info->setterData = PropInfo->SetterData;
+    info->mapper = this;
+
+    auto* def = (PyGetSetDef*) PyMem_Malloc(sizeof(PyGetSetDef));
+    def->name = PropInfo->Name;
+    def->get = nullptr;
+    def->set = nullptr;
+    def->doc = nullptr;
+    def->closure = info;
+
+    if (PropInfo->Getter)
+    {
+        def->get = staticPropGetter;
+    }
+    if (PropInfo->Setter)
+    {
+        def->set = staticPropSetter;
+    }
+
+    auto prop = PyDescr_NewGetSet((PyTypeObject*)MetaObj, def);
+    PyObject_SetAttrString(MetaObj, PropInfo->Name, prop);
+    Py_DECREF(prop);
+}
 
 // Static method implementation for variables
 static PyObject* staticVariableGetter(PyObject* self, PyObject* args) {
@@ -556,7 +588,7 @@ static PyObject* staticVariableSetter(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-void CppObjectMapper::InitVariable(puerts::ScriptPropertyInfo* PropInfo, PyObject* Obj)
+void CppObjectMapper::InitVariable(puerts::ScriptPropertyInfo* PropInfo, PyObject* Obj, PyObject* Meta)
 {
     auto info = (GetterSetterInfo*) PyMem_Malloc(sizeof(GetterSetterInfo));
     info->getter = PropInfo->Getter;
@@ -830,6 +862,18 @@ static PyType_Spec DynType_spec = {
     .slots = DynType_slots
 };
 
+static PyType_Slot StaticPropMetaClass_slots[] = {
+    {0, 0}
+};
+
+static PyType_Spec StaticPropMetaClass_spec = {
+    .name = "builtins.PuerStaticPropMetaClass",
+    .basicsize = sizeof(PyHeapTypeObject),
+    .itemsize = 0,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
+    .slots = StaticPropMetaClass_slots
+};
+
 puerts::ScriptFunctionInfo* CppObjectMapper::FindFuncInfo(const puerts::ScriptClassDefinition* cls,const eastl::basic_string<char,eastl::allocator_malloc>& name)
 {
     auto it_cache = MethodMetaCache.find(cls);
@@ -879,10 +923,18 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
     spec.flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE | Py_TPFLAGS_BASETYPE;
 
     PyObject* type_obj = nullptr;
+    PyObject* meta_class_type_obj = nullptr;
     if (ClassDefinition->SuperTypeId)
     {
+        PyType_Spec Meta_Spec = StaticPropMetaClass_spec;
+        char* meta_type_name = (char*) PyMem_Malloc(strlen(ClassDefinition->ScriptName) + 25); // "builtins.PuerStaticPropMetaClass." + name + '\0'
+        sprintf(meta_type_name, "builtins.PuerStaticPropMetaClass.%s", ClassDefinition->ScriptName);
+        Meta_Spec.name =  meta_type_name;
         PyObject* bases = PyTuple_Pack(1, FindOrCreateClass(puerts::LoadClassByID(registry, ClassDefinition->SuperTypeId)));
-        type_obj = PyType_FromSpecWithBases(&spec, bases);
+        PyObject* meta_bases = PyTuple_Pack(1, (PyObject*)&PyType_Type);
+        meta_class_type_obj = PyType_FromSpecWithBases(&StaticPropMetaClass_spec, meta_bases);
+        Py_DECREF(meta_bases);
+        type_obj = PyType_FromMetaclass(reinterpret_cast<PyTypeObject *>(meta_class_type_obj), nullptr, &spec, bases);
         Py_DECREF(bases);
     }
     else 
@@ -918,7 +970,7 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
     PropertyInfo = ClassDefinition->Variables;
     while (PropertyInfo && PropertyInfo->Name)
     {
-        InitVariable(PropertyInfo, type_obj);
+        InitStaticProperty(PropertyInfo, meta_class_type_obj);
         ++PropertyInfo;
     }
 
