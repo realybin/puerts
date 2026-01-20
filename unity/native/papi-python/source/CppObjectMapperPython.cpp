@@ -858,7 +858,7 @@ static PyType_Spec DynType_spec = {
     .name = "NativeClass",
     .basicsize = sizeof(DynObj),
     .itemsize = 0,
-    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE | Py_TPFLAGS_BASETYPE,
     .slots = DynType_slots
 };
 
@@ -870,7 +870,7 @@ static PyType_Spec StaticPropMetaClass_spec = {
     .name = "builtins.PuerStaticPropMetaClass",
     .basicsize = sizeof(PyHeapTypeObject),
     .itemsize = 0,
-    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE | Py_TPFLAGS_BASETYPE,
     .slots = StaticPropMetaClass_slots
 };
 
@@ -920,18 +920,28 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
     char* typeName = (char*) PyMem_Malloc(strlen(ClassDefinition->ScriptName) + 10); // "builtins." + name + '\0'
     sprintf(typeName, "builtins.%s", ClassDefinition->ScriptName);
     spec.name = typeName;
-    spec.flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE | Py_TPFLAGS_BASETYPE;
+
+    PyType_Spec Meta_Spec = StaticPropMetaClass_spec;
+    char* meta_type_name = (char*) PyMem_Malloc(strlen(ClassDefinition->ScriptName) + 25); // "builtins.PuerStaticPropMetaClass." + name + '\0'
+    sprintf(meta_type_name, "builtins.PuerStaticPropMetaClass.%s", ClassDefinition->ScriptName);
+    Meta_Spec.name =  meta_type_name;
+
 
     PyObject* type_obj = nullptr;
     PyObject* meta_class_type_obj = nullptr;
     if (ClassDefinition->SuperTypeId)
     {
-        PyType_Spec Meta_Spec = StaticPropMetaClass_spec;
-        char* meta_type_name = (char*) PyMem_Malloc(strlen(ClassDefinition->ScriptName) + 25); // "builtins.PuerStaticPropMetaClass." + name + '\0'
-        sprintf(meta_type_name, "builtins.PuerStaticPropMetaClass.%s", ClassDefinition->ScriptName);
-        Meta_Spec.name =  meta_type_name;
-        PyObject* bases = PyTuple_Pack(1, FindOrCreateClass(puerts::LoadClassByID(registry, ClassDefinition->SuperTypeId)));
-        PyObject* meta_bases = PyTuple_Pack(1, (PyObject*)&PyType_Type);
+        auto super_type_obj = FindOrCreateClass(puerts::LoadClassByID(registry, ClassDefinition->SuperTypeId));
+        PyObject* bases = PyTuple_Pack(1, super_type_obj);
+        auto super_meta = PyObject_GetAttrString(super_type_obj, "__puerts_metaclass__");
+        if (!super_meta)
+        {
+            printf("Failed to get super metaclass for %s\n", ClassDefinition->ScriptName);
+            PyErr_SetString(PyExc_RuntimeError, "Failed to get super metaclass");
+            Py_DECREF(bases);
+            return NULL;
+        }
+        PyObject* meta_bases = PyTuple_Pack(1, super_meta);
         meta_class_type_obj = PyType_FromSpecWithBases(&StaticPropMetaClass_spec, meta_bases);
         Py_DECREF(meta_bases);
         type_obj = PyType_FromMetaclass(reinterpret_cast<PyTypeObject *>(meta_class_type_obj), nullptr, &spec, bases);
@@ -939,11 +949,18 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
     }
     else 
     {
-        type_obj = PyType_FromSpec(&spec);
+        PyObject* meta_bases = PyTuple_Pack(1, (PyObject*)&PyType_Type);
+        meta_class_type_obj = PyType_FromSpecWithBases(&StaticPropMetaClass_spec, meta_bases);
+        if (!meta_class_type_obj) {
+            printf("Failed to create metaclass type object for %s\n", ClassDefinition->ScriptName);
+            PyErr_SetString(PyExc_RuntimeError, "Failed to create metaclass type object");
+        }
+        Py_DECREF(meta_bases);
+        type_obj = PyType_FromMetaclass(reinterpret_cast<PyTypeObject *>(meta_class_type_obj), nullptr, &spec, nullptr);
     }
-    PyHeapTypeObject* type = (PyHeapTypeObject*)type_obj;
     if (!type_obj) return NULL;
-
+    if (!meta_class_type_obj) return NULL;
+    PyObject_SetAttrString(type_obj, "__puerts_metaclass__", meta_class_type_obj);
 
     ContextObj* ctx = (ContextObj*)PyObject_New(ContextObj, &Context_Type);
     if (!ctx) {
