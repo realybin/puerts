@@ -15,6 +15,7 @@
 #include "PapiData.h"
 
 #define CTX_ATTR_NAME "__context_puerts__"
+#define METACLASS_ATTR_NAME "__metaclass_puerts__"
 
 namespace pesapi
 {
@@ -429,6 +430,7 @@ void CppObjectMapper::InitProperty(puerts::ScriptPropertyInfo* PropInfo, PyObjec
 
 static PyObject* staticPropGetter(PyObject* self, void* closure)
 {
+    printf("[Native/C++] Accessing static property getter\n");
     auto* info = (CppObjectMapper::GetterSetterInfo*) closure;
     pesapi_callback callback = info->getter;
 
@@ -461,6 +463,7 @@ static PyObject* staticPropGetter(PyObject* self, void* closure)
 
 static int staticPropSetter(PyObject* self, PyObject* value, void* closure)
 {
+    printf("[Native/C++] Accessing static property setter\n");
     if (!value)
     {
         PyErr_SetString(PyExc_RuntimeError, "Native static property value cannot be null and cannot be deleted");
@@ -496,8 +499,6 @@ static int staticPropSetter(PyObject* self, PyObject* value, void* closure)
 
 void CppObjectMapper::InitStaticProperty(puerts::ScriptPropertyInfo* PropInfo, PyObject* MetaObj)
 {
-    //make crash here
-    printf("InitStaticProperty: %s\n", PropInfo->Name);
     auto info = (GetterSetterInfo*) PyMem_Malloc(sizeof(GetterSetterInfo));
     info->getter = PropInfo->Getter;
     info->setter = PropInfo->Setter;
@@ -507,6 +508,7 @@ void CppObjectMapper::InitStaticProperty(puerts::ScriptPropertyInfo* PropInfo, P
 
     auto* def = (PyGetSetDef*) PyMem_Malloc(sizeof(PyGetSetDef));
     def->name = PropInfo->Name;
+    printf("[Native/C++] ?? Initializing static property: %s\n", def->name);
     def->get = nullptr;
     def->set = nullptr;
     def->doc = nullptr;
@@ -523,7 +525,7 @@ void CppObjectMapper::InitStaticProperty(puerts::ScriptPropertyInfo* PropInfo, P
 
     auto prop = PyDescr_NewGetSet((PyTypeObject*)MetaObj, def);
     PyObject_SetAttrString(MetaObj, PropInfo->Name, prop);
-    Py_DECREF(prop);
+    //Py_DECREF(prop);
 }
 
 // Static method implementation for variables
@@ -803,6 +805,8 @@ static PyObject* DynObj_call_method(PyObject* self, PyObject* args)
         return nullptr;
     }
 
+    printf("[Native/C++]Calling method: %s\n", methodName);
+
     auto* funcInfo = dynObj->mapper->FindFuncInfo(dynObj->classDefinition, methodName);
     if (!funcInfo) {
         PyErr_Format(PyExc_AttributeError, "method '%s' not found", methodName);
@@ -909,6 +913,7 @@ puerts::ScriptFunctionInfo* CppObjectMapper::FindFuncInfo(const puerts::ScriptCl
 
 PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition* ClassDefinition)
 {
+    printf("[Native/C++]FindOrCreateClass: %s\n", ClassDefinition->ScriptName);
     auto it = TypeIdToFunctionMap.find(ClassDefinition->TypeId);
     if (it != TypeIdToFunctionMap.end())
     {
@@ -921,9 +926,11 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
     sprintf(typeName, "builtins.%s", ClassDefinition->ScriptName);
     spec.name = typeName;
 
+    printf("[Native/C++]Creating class: %s\n", spec.name);
+
     PyType_Spec Meta_Spec = StaticPropMetaClass_spec;
     char* meta_type_name = (char*) PyMem_Malloc(strlen(ClassDefinition->ScriptName) + 25); // "builtins.PuerStaticPropMetaClass." + name + '\0'
-    sprintf(meta_type_name, "builtins.PuerStaticPropMetaClass.%s", ClassDefinition->ScriptName);
+    sprintf(meta_type_name, "builtins._puerts_metaclass.%s", ClassDefinition->ScriptName);
     Meta_Spec.name =  meta_type_name;
 
 
@@ -932,35 +939,40 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
     if (ClassDefinition->SuperTypeId)
     {
         auto super_type_obj = FindOrCreateClass(puerts::LoadClassByID(registry, ClassDefinition->SuperTypeId));
+        printf("[Native/C++]Found super class definition for %s\n", ClassDefinition->ScriptName);
+        printf("[Native/C++]      Super class: %s\n", Py_TYPE(super_type_obj)->tp_name);
         PyObject* bases = PyTuple_Pack(1, super_type_obj);
-        auto super_meta = PyObject_GetAttrString(super_type_obj, "__puerts_metaclass__");
+        auto super_meta = PyObject_GetAttrString(super_type_obj, METACLASS_ATTR_NAME);
         if (!super_meta)
         {
-            printf("Failed to get super metaclass for %s\n", ClassDefinition->ScriptName);
-            PyErr_SetString(PyExc_RuntimeError, "Failed to get super metaclass");
-            Py_DECREF(bases);
-            return NULL;
+            printf("---> Failed to get super metaclass for %s\n", ClassDefinition->ScriptName);
+            PyErr_Clear();
         }
         PyObject* meta_bases = PyTuple_Pack(1, super_meta);
         meta_class_type_obj = PyType_FromSpecWithBases(&StaticPropMetaClass_spec, meta_bases);
-        Py_DECREF(meta_bases);
+        //Py_DECREF(meta_bases);
         type_obj = PyType_FromMetaclass(reinterpret_cast<PyTypeObject *>(meta_class_type_obj), nullptr, &spec, bases);
-        Py_DECREF(bases);
+        //Py_DECREF(bases);
     }
     else 
     {
+        printf("[Native/C++]No super class for %s, using default base\n", ClassDefinition->ScriptName);
         PyObject* meta_bases = PyTuple_Pack(1, (PyObject*)&PyType_Type);
-        meta_class_type_obj = PyType_FromSpecWithBases(&StaticPropMetaClass_spec, meta_bases);
+        meta_class_type_obj = PyType_FromSpecWithBases(&Meta_Spec, meta_bases);
         if (!meta_class_type_obj) {
             printf("Failed to create metaclass type object for %s\n", ClassDefinition->ScriptName);
-            PyErr_SetString(PyExc_RuntimeError, "Failed to create metaclass type object");
+            PyErr_Clear();
         }
-        Py_DECREF(meta_bases);
+        //Py_DECREF(meta_bases);
         type_obj = PyType_FromMetaclass(reinterpret_cast<PyTypeObject *>(meta_class_type_obj), nullptr, &spec, nullptr);
     }
     if (!type_obj) return NULL;
     if (!meta_class_type_obj) return NULL;
-    PyObject_SetAttrString(type_obj, "__puerts_metaclass__", meta_class_type_obj);
+    if (PyObject_SetAttrString(type_obj, METACLASS_ATTR_NAME, meta_class_type_obj) < 0) {
+        Py_DECREF(type_obj);
+        Py_DECREF(meta_class_type_obj);
+        return NULL;
+    }
 
     ContextObj* ctx = (ContextObj*)PyObject_New(ContextObj, &Context_Type);
     if (!ctx) {
@@ -975,7 +987,7 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
         Py_DECREF(type_obj);
         return NULL;
     }
-    Py_DECREF(ctx);
+    // Py_DECREF(ctx);
 
     puerts::ScriptPropertyInfo* PropertyInfo = ClassDefinition->Properties;
     while (PropertyInfo && PropertyInfo->Name)
@@ -999,6 +1011,7 @@ PyObject* CppObjectMapper::FindOrCreateClass(const puerts::ScriptClassDefinition
     }
 
     TypeIdToFunctionMap[ClassDefinition->TypeId] = type_obj;
+    printf("[Native/C++]Created class: %s\n", ClassDefinition->ScriptName);
     return type_obj;
 }
 
