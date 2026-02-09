@@ -135,7 +135,9 @@ jobs:
               Remove-Item "unity/native/papi-python/build_linux_x64_papi-python/libPuertsCore.so" -Force
 
               $plugin="unity/native/papi-python/build_linux_x64_papi-python/libPapiPython.so"
-              patchelf --set-rpath '$ORIGIN' $plugin
+              readelf --dynamic $plugin
+              # patchelf --replace-needed '$ORIGIN/libpython3.14.so.1.0' 'libpython3.14.so' $plugin
+              # patchelf --set-rpath '$ORIGIN' $plugin
             }
           }
           if ("${{ matrix.platform }}" -eq "win" -and (Test-Path "unity/native/papi-nodejs/build_win_x64_papi-nodejs/Release")) {
