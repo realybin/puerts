@@ -634,5 +634,58 @@ namespace Puerts.UnitTest
             Assert.AreEqual((long.MinValue).ToString(), res);
             luaEnv.Dispose();
         }
+
+        [Test]
+        public void LuaShouldHandleStaticAccessLargeEnumAndNestedEnum()
+        {
+            using var luaEnv = new ScriptEnv(new BackendLua());
+
+            const string prelude = @"local CS = require('csharp')
+";
+
+            var sinValue = luaEnv.Eval<float>(prelude + @"
+                return CS.UnityEngine.Mathf.Sin(0.5)
+            ");
+            Assert.That(sinValue, Is.EqualTo(Mathf.Sin(0.5f)).Within(1e-6f));
+
+            var platformValue = luaEnv.Eval<int>(prelude + @"
+                return CS.UnityEngine.Application.platform
+            ");
+            Assert.AreEqual((int)Application.platform, platformValue);
+
+            // Large enum regression: this used to be the kind of path that could
+            // blow up in Lua when enum materialization leaked stack values.
+            var keyCodeValue = luaEnv.Eval<int>(prelude + @"
+                return CS.UnityEngine.KeyCode.Return
+            ");
+            Assert.AreEqual((int)KeyCode.Return, keyCodeValue);
+
+            // Nested enum regression: equivalent to class-scoped enum access.
+            var specialFolderValue = luaEnv.Eval<int>(prelude + @"
+                return CS.System.Environment.SpecialFolder.Desktop
+            ");
+            Assert.AreEqual((int)System.Environment.SpecialFolder.Desktop, specialFolderValue);
+        }
+
+        [Test]
+        public void LuaShouldRepeatedlyAccessLargeEnumWithoutCrashing()
+        {
+            using var luaEnv = new ScriptEnv(new BackendLua());
+
+            Assert.DoesNotThrow(() =>
+            {
+                luaEnv.Eval(@"
+                    local CS = require('csharp')
+
+                    for i = 1, 64 do
+                        local key = CS.UnityEngine.KeyCode
+                        assert(key.Return == 13)
+                        assert(key.Space == 32)
+                    end
+
+                    return true
+                ");
+            });
+        }
     }
 }
