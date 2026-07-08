@@ -638,54 +638,63 @@ namespace Puerts.UnitTest
         [Test]
         public void LuaShouldHandleStaticAccessLargeEnumAndNestedEnum()
         {
-            using var luaEnv = new ScriptEnv(new BackendLua());
+            var luaEnv = new ScriptEnv(new BackendLua());
+            try
+            {
+                const string prelude = "local CS = require('csharp')\n";
 
-            const string prelude = @"local CS = require('csharp')
-";
+                double sinValue = luaEnv.Eval<double>(prelude + @"
+                    return CS.System.Math.Sin(0.5)
+                ");
+                Assert.AreEqual(Math.Sin(0.5), sinValue, 1e-12);
 
-            var sinValue = luaEnv.Eval<float>(prelude + @"
-                return CS.UnityEngine.Mathf.Sin(0.5)
-            ");
-            Assert.That(sinValue, Is.EqualTo(Mathf.Sin(0.5f)).Within(1e-6f));
+                int tickCount = luaEnv.Eval<int>(prelude + @"
+                    return CS.System.Environment.TickCount
+                ");
+                Assert.AreEqual(Environment.TickCount, tickCount);
 
-            var platformValue = luaEnv.Eval<int>(prelude + @"
-                return CS.UnityEngine.Application.platform
-            ");
-            Assert.AreEqual((int)Application.platform, platformValue);
+                int consoleKeyEnter = luaEnv.Eval<int>(prelude + @"
+                    return CS.System.ConsoleKey.Enter
+                ");
+                Assert.AreEqual((int)ConsoleKey.Enter, consoleKeyEnter);
 
-            // Large enum regression: this used to be the kind of path that could
-            // blow up in Lua when enum materialization leaked stack values.
-            var keyCodeValue = luaEnv.Eval<int>(prelude + @"
-                return CS.UnityEngine.KeyCode.Return
-            ");
-            Assert.AreEqual((int)KeyCode.Return, keyCodeValue);
-
-            // Nested enum regression: equivalent to class-scoped enum access.
-            var specialFolderValue = luaEnv.Eval<int>(prelude + @"
-                return CS.System.Environment.SpecialFolder.Desktop
-            ");
-            Assert.AreEqual((int)System.Environment.SpecialFolder.Desktop, specialFolderValue);
+                int specialFolderDesktop = luaEnv.Eval<int>(prelude + @"
+                    return CS.System.Environment.SpecialFolder.Desktop
+                ");
+                Assert.AreEqual((int)Environment.SpecialFolder.Desktop, specialFolderDesktop);
+            }
+            finally
+            {
+                luaEnv.Dispose();
+            }
         }
 
         [Test]
         public void LuaShouldRepeatedlyAccessLargeEnumWithoutCrashing()
         {
-            using var luaEnv = new ScriptEnv(new BackendLua());
-
-            Assert.DoesNotThrow(() =>
+            var luaEnv = new ScriptEnv(new BackendLua());
+            try
             {
-                luaEnv.Eval(@"
-                    local CS = require('csharp')
+                Assert.DoesNotThrow(() =>
+                {
+                    luaEnv.Eval(@"
+                        local CS = require('csharp')
 
-                    for i = 1, 64 do
-                        local key = CS.UnityEngine.KeyCode
-                        assert(key.Return == 13)
-                        assert(key.Space == 32)
-                    end
+                        for i = 1, 128 do
+                            local key = CS.System.ConsoleKey
+                            assert(key.Enter == 13)
+                            assert(key.Spacebar == 32)
+                            assert(key.F12 == 123)
+                        end
 
-                    return true
-                ");
-            });
+                        return true
+                    ");
+                });
+            }
+            finally
+            {
+                luaEnv.Dispose();
+            }
         }
     }
 }
